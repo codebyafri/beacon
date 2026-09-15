@@ -13,6 +13,19 @@ defmodule Beacon.Storage do
   """
   @callback call(site :: atom(), context :: module(), operation :: atom(), args :: list()) ::
               term()
+  @callback initialize(site :: atom()) :: :ok
+  @optional_callbacks initialize: 1
+
+  @doc "Initialize provider-owned resources, or use Beacon's default initialization."
+  def initialize(site, default) do
+    provider = Beacon.Config.fetch!(site).storage
+
+    if provider && Code.ensure_loaded?(provider) && function_exported?(provider, :initialize, 1) do
+      :ok = provider.initialize(site)
+    else
+      default.()
+    end
+  end
 
   @doc false
   def dispatch(context, operation, args, default) do

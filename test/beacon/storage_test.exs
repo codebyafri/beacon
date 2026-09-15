@@ -10,6 +10,28 @@ defmodule Beacon.StorageTest do
     def config(:otp_app), do: :beacon
   end
 
+  defmodule InitializedProvider do
+    @behaviour Beacon.Storage
+    def call(_, _, _, _), do: :unused
+    def initialize(site) do
+      send(self(), {:initialized, site})
+      :ok
+    end
+  end
+
+  test "initialization remains optional and delegates only when configured" do
+    site = :not_booted
+    old = Beacon.Config.fetch!(site).storage
+    on_exit(fn -> Beacon.Config.update_value(site, :storage, old) end)
+    for provider <- [nil, Provider] do
+      Beacon.Config.update_value(site, :storage, provider)
+      assert :default = Beacon.Storage.initialize(site, fn -> :default end)
+    end
+    Beacon.Config.update_value(site, :storage, InitializedProvider)
+    assert :ok = Beacon.Storage.initialize(site, fn -> flunk("default initialization ran") end)
+    assert_received {:initialized, ^site}
+  end
+
   test "custom storage discovers its host application without an Ecto repo" do
     config = Beacon.Config.new(site: :provider_test, endpoint: Endpoint, router: :router, storage: Provider)
     assert Beacon.Private.otp_app!(config) == :beacon
