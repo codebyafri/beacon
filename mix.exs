@@ -123,16 +123,16 @@ defmodule Beacon.MixProject do
     [
       setup: ["deps.get", "assets.setup", "assets.build"],
       dev: ["run --no-halt dev.exs"],
-      "format.all": ["format", "cmd npm run format --prefix ./assets"],
+      "format.all": ["format", "cmd bun run --bun --cwd assets format"],
       "format.all.check": [
         "format --check-formatted",
-        "cmd npm run format-check --prefix ./assets"
+        "cmd bun run --bun --cwd assets format-check"
       ],
       "test.ci": ["ecto.create --quiet", "ecto.migrate --quiet", "test"],
       "assets.setup": [
         "tailwind.install --if-missing --no-assets",
         "esbuild.install --if-missing",
-        "cmd npm install --prefix assets"
+        "cmd bun install --cwd assets --frozen-lockfile"
       ],
       "assets.build": ["esbuild cdn", "esbuild cdn_min", "esbuild tailwind_bundle"]
     ]
