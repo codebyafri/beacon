@@ -6,6 +6,18 @@ defmodule Beacon.StorageTest do
     def call(site, context, operation, args), do: {:provider, site, context, operation, args}
   end
 
+  defmodule Endpoint do
+    def config(:otp_app), do: :beacon
+  end
+
+  test "custom storage discovers its host application without an Ecto repo" do
+    config = Beacon.Config.new(site: :provider_test, endpoint: Endpoint, router: :router, storage: Provider)
+    assert Beacon.Private.otp_app!(config) == :beacon
+    Application.put_env(:beacon, Endpoint, url: [host: "provider.example"])
+    on_exit(fn -> Application.delete_env(:beacon, Endpoint) end)
+    assert Beacon.Private.endpoint_host(:beacon, Endpoint) == "provider.example"
+  end
+
   test "an explicit provider permits a configuration without an Ecto repo" do
     config =
       Beacon.Config.new(
