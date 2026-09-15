@@ -11,7 +11,9 @@ config :tailwind, version: "3.4.4"
 config :beacon, Beacon.BeaconTest.Repo,
   url: System.get_env("DATABASE_URL") || "postgres://localhost:5432/beacon_test",
   pool: Ecto.Adapters.SQL.Sandbox,
-  pool_size: System.schedulers_online() * 2,
+  # Boot warms resources concurrently; loader workers may make nested queries.
+  # Keep enough sandbox connections on two-core CI runners for that startup work.
+  pool_size: max(System.schedulers_online() * 2, 10),
   priv: "test/support",
   stacktrace: true,
   show_sensitive_data_on_connection_error: true
