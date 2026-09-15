@@ -141,13 +141,19 @@ defmodule Beacon.LoaderTest do
 
   describe "error pages" do
     setup do
-      beacon_error_page_fixture()
+      beacon_error_page_fixture(status: 500, template: "Custom server failure")
       :ok
     end
 
-    test "loads module containing all page errors", %{site: site} do
-      conn = Phoenix.ConnTest.build_conn()
+    test "loads configured errors and falls back for missing statuses", %{site: site} do
+      conn =
+        Phoenix.ConnTest.build_conn()
+        |> Plug.Conn.assign(:beacon, Beacon.Web.BeaconAssigns.new(site))
+        |> Plug.Conn.put_private(:phoenix_router, Beacon.BeaconTest.Router)
+
       module = Loader.load_error_page_module(site)
+      assert {:safe, html} = module.render(conn, 500)
+      assert IO.iodata_to_binary(html) =~ "Custom server failure"
       assert module.render(conn, 404) == "Not Found"
     end
   end
