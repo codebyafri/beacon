@@ -7,8 +7,15 @@ defmodule Beacon.Private do
   # Should be avoided as much as possible.
 
   @doc """
-  Fetch the host app `:otp_app` from the Repo config.
+  Fetch the host app `:otp_app` from the endpoint for a custom storage provider,
+  or from the Repo config for the default PostgreSQL provider.
   """
+  def otp_app!(%Beacon.Config{storage: storage, endpoint: endpoint}) when not is_nil(storage) do
+    endpoint.config(:otp_app) || raise Beacon.RuntimeError, "failed to discover :otp_app from endpoint"
+  rescue
+    _ -> reraise Beacon.RuntimeError, [message: "failed to discover :otp_app, make sure Endpoint is started before Beacon"], __STACKTRACE__
+  end
+
   def otp_app!(%Beacon.Config{repo: repo}) do
     repo.config()[:otp_app] || raise Beacon.RuntimeError, "failed to discover :otp_app"
   rescue
@@ -63,7 +70,18 @@ defmodule Beacon.Private do
   end
 
   def endpoint_config(otp_app, endpoint) do
-    Phoenix.Endpoint.Supervisor.config(otp_app, endpoint)
+    # Phoenix 1.8 removed this private helper. Prefer the running endpoint's
+    # public configuration API, preserving pre-start lookup for proxy setup.
+    cond do
+      :ets.whereis(endpoint) != :undefined ->
+        [url: endpoint.config(:url, [])]
+
+      function_exported?(Phoenix.Endpoint.Supervisor, :config, 2) ->
+        apply(Phoenix.Endpoint.Supervisor, :config, [otp_app, endpoint])
+
+      true ->
+        Application.get_env(otp_app, endpoint, [])
+    end
   end
 
   def endpoint_host(otp_app, endpoint) do

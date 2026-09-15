@@ -26,11 +26,13 @@ defmodule Beacon.Boot do
 
     # temporary disable module loading so we can populate data more efficiently
     %{mode: :manual} = Beacon.Config.update_value(site, :mode, :manual)
-    Beacon.Loader.populate_default_media(site)
-    Beacon.Loader.populate_default_components(site)
-    Beacon.Loader.populate_default_layouts(site)
-    Beacon.Loader.populate_default_error_pages(site)
-    Beacon.Loader.populate_default_home_page(site)
+    Beacon.Storage.initialize(site, fn ->
+      Beacon.Loader.populate_default_media(site)
+      Beacon.Loader.populate_default_components(site)
+      Beacon.Loader.populate_default_layouts(site)
+      Beacon.Loader.populate_default_error_pages(site)
+      Beacon.Loader.populate_default_home_page(site)
+    end)
 
     %{mode: :live} = Beacon.Config.update_value(site, :mode, :live)
 
