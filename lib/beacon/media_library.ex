@@ -1,4 +1,24 @@
 defmodule Beacon.MediaLibrary do
+
+  use Beacon.Storage,
+    operations: [
+      :srcset_for_image,
+      :search,
+      :soft_delete,
+      :read_binary,
+      :read_binary!,
+      :count_assets,
+      :delete,
+      :fetch_asset,
+      :fetch_asset!,
+      :get_asset_by,
+      :list_assets,
+      :save_asset,
+      :save_asset!,
+      :update,
+      :upload
+    ]
+
   @moduledoc """
   Provides functions to upload and serve assets.
   """

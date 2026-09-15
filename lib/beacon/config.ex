@@ -204,7 +204,8 @@ defmodule Beacon.Config do
           site: Beacon.Types.Site.t(),
           endpoint: endpoint(),
           router: router(),
-          repo: repo(),
+          repo: repo() | nil,
+          storage: module() | nil,
           mode: mode(),
           css_compiler: css_compiler(),
           tailwind_config: tailwind_config(),
@@ -240,6 +241,7 @@ defmodule Beacon.Config do
             endpoint: nil,
             router: nil,
             repo: nil,
+            storage: nil,
             mode: :live,
             # TODO: rename to `authorization_policy`, see https://github.com/BeaconCMS/beacon/pull/563
             # authorization_source: Beacon.Authorization.DefaultPolicy,
@@ -273,6 +275,7 @@ defmodule Beacon.Config do
           | {:endpoint, endpoint()}
           | {:router, router()}
           | {:repo, repo()}
+          | {:storage, module()}
           | {:mode, mode()}
           | {:css_compiler, css_compiler()}
           | {:tailwind_config, tailwind_config()}
@@ -299,7 +302,9 @@ defmodule Beacon.Config do
 
     * `:router` - `t:router/0` (required)
 
-    * `:repo` - `t:repo/0` (required)
+    * `:repo` - `t:repo/0` (required with the default PostgreSQL storage)
+
+    * `:storage` - module implementing `Beacon.Storage` (optional). Defaults to PostgreSQL.
 
     * `:mode` - `t:mode/0` (optional). Defaults to `:live`.
 
@@ -426,7 +431,16 @@ defmodule Beacon.Config do
     opts[:site] || raise ConfigError, "missing required option :site"
     opts[:endpoint] || raise ConfigError, "missing required option :endpoint"
     opts[:router] || raise ConfigError, "missing required option :router"
-    ensure_repo(opts[:repo])
+
+    if opts[:storage] do
+      provider = opts[:storage]
+
+      unless Code.ensure_loaded?(provider) and function_exported?(provider, :call, 4) do
+        raise ConfigError, "storage provider must implement Beacon.Storage.call/4"
+      end
+    else
+      ensure_repo(opts[:repo])
+    end
 
     tailwind_css = get_opt(opts, :tailwind_css, Path.join(Application.app_dir(:beacon, "priv"), "tailwind.css"))
 

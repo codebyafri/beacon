@@ -1,4 +1,10 @@
 defmodule Beacon.MediaLibrary.Provider do
+
+  use Beacon.Storage,
+    operations: [
+      :soft_delete
+    ]
+
   @moduledoc """
   Connects to an external service to store and serve assets in the Media Library.
 
